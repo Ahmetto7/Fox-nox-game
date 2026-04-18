@@ -4,42 +4,29 @@ const scoreElement = document.getElementById('score');
 const startBtn = document.getElementById('start-btn');
 const overlay = document.getElementById('startOverlay');
 
-canvas.width = 800;
-canvas.height = 250;
+canvas.width = 600;
+canvas.height = 200;
 
-// GÖRSELLERİ YÜKLE
+// GÖRSELLERİ YÜKLE (İnternetten hazır ve hızlı linkler)
 const foxImg = new Image();
-// Ben senin tilkiyi temizleyip koda gömdüm, hiç uğraşma
-foxImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABkCAYAAACH6490AAAA...'; // (Bu kısım kısa, ben kodu senin için hazırladım)
+foxImg.src = 'https://img.icons8.com/color/96/fox.png'; // Senin tilki yerine tatlı bir tilki ikonu
 
-// Orman Temalı Engeller
-const obstacleImages = [
-    'data:image/png;base64,...', // Meşe Palamudu
-    'data:image/png;base64,...', // Çalı 1
-    'data:image/png;base64,...', // Çalı 2
-    'data:image/png;base64,...'  // Farklı Engel
-];
+const obstacleImg = new Image();
+obstacleImg.src = 'https://img.icons8.com/color/48/tree.png'; // Orman engeli
 
-let player = { x: 50, y: 200, w: 70, h: 50, dy: 0, jump: -15, gravity: 0.8, grounded: false };
+let player = { x: 50, y: 150, w: 40, h: 40, dy: 0, jump: -12, gravity: 0.8, grounded: false };
 let obstacles = [];
 let score = 0;
 let gameActive = false;
-let gameSpeed = 6;
+let gameSpeed = 5;
 
 function spawnObstacle() {
-    let type = Math.floor(Math.random() * obstacleImages.length);
-    let img = new Image();
-    img.src = obstacleImages[type];
-    
-    // Engellerin boyutu rastgele değişsin (Zorluk)
-    let size = Math.random() * (60 - 30) + 30;
-    obstacles.push({ x: canvas.width, y: canvas.height - size, w: size, h: size, img: img });
+    obstacles.push({ x: canvas.width, y: canvas.height - 40, w: 30, h: 40 });
 }
 
 function update() {
     if (!gameActive) return;
 
-    // Zıplama Fiziği
     player.dy += player.gravity;
     player.y += player.dy;
 
@@ -49,72 +36,43 @@ function update() {
         player.grounded = true;
     }
 
-    // Engeller
-    obstacles.forEach((obs, i) => {
+    obstacles.forEach((obs) => {
         obs.x -= gameSpeed;
-        
-        // Gelişmiş Çarpışma Kontrolü
-        if (player.x < obs.x + obs.w - 10 && player.x + player.w - 10 > obs.x &&
-            player.y < obs.y + obs.h - 10 && player.y + player.h > obs.y) {
-            gameOver();
+        if (player.x < obs.x + obs.w && player.x + player.w > obs.x && player.y < obs.y + obs.h && player.y + player.h > obs.y) {
+            gameActive = false;
+            alert("Oyun Bitti! Skor: " + Math.floor(score/10));
+            location.reload(); // Sayfayı yenileyip resetler
         }
     });
 
     obstacles = obstacles.filter(obs => obs.x + obs.w > 0);
     score++;
     scoreElement.innerText = Math.floor(score / 10);
-    
-    // Oyun giderek hızlansın
-    gameSpeed += 0.002;
+    gameSpeed += 0.001;
 }
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Zemini çiz (Safir rengi)
-    ctx.fillStyle = 'rgba(15, 82, 186, 0.5)';
-    ctx.fillRect(0, canvas.height - 2, canvas.width, 2);
-
-    // Gerçek Hayvanı Çiz
+    
+    // Tilkiyi Çiz
     ctx.drawImage(foxImg, player.x, player.y, player.w, player.h);
 
     // Engelleri Çiz
     obstacles.forEach(obs => {
-        ctx.drawImage(obs.img, obs.x, obs.y, obs.w, obs.h);
+        ctx.drawImage(obstacleImg, obs.x, obs.y, obs.w, obs.h);
     });
 
     update();
     requestAnimationFrame(draw);
 }
 
-function gameOver() {
-    gameActive = false;
-    alert("Zzz... Tekrar uykuya daldı! Skorun: " + Math.floor(score/10));
-    score = 0; obstacles = []; gameSpeed = 6;
-    overlay.classList.remove('hidden'); // Başlangıç ekranını geri getir
-}
-
-function jump() {
-    if (player.grounded) {
-        player.dy = player.jump;
-        player.grounded = false;
-    }
-}
-
-startBtn.addEventListener('click', () => { 
-    gameActive = true; 
-    overlay.style.display = 'none'; // Başlangıç ekranını gizle
-    // Engel çıkarma hızını da rastgele yapalım (Zorluk)
-    const loop = () => {
-        if(gameActive) {
-            spawnObstacle();
-            setTimeout(loop, Math.random() * (1500 - 600) + 600);
-        }
-    };
-    loop();
+startBtn.addEventListener('click', () => {
+    gameActive = true;
+    overlay.style.display = 'none';
+    setInterval(() => { if(gameActive) spawnObstacle(); }, 1500);
 });
 
-window.addEventListener('keydown', (e) => { if(e.code === 'Space' || e.code === 'ArrowUp') jump(); });
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }); // Mobil desteği
+window.addEventListener('keydown', (e) => { if(e.code === 'Space') { player.dy = player.jump; player.grounded = false; }});
+canvas.addEventListener('touchstart', () => { player.dy = player.jump; player.grounded = false; });
 
 draw();
